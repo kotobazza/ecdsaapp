@@ -1,0 +1,1 @@
+from .FastPow import fast_power
