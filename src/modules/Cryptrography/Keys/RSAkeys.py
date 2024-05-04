@@ -50,7 +50,7 @@ class RSAPrivateKey:
     def decrypt_number(self, message: int):
         return fast_power(abs(message), self.private_part, self.modulus)
 
-    def decrypt_string(self, message: str):
+    def decrypt_string_sample(self, message: str):
         '''
             Является sample-методом. Ужасно работает
             Для переработки надо построить хеш-функцию
@@ -77,7 +77,7 @@ class RSAPrivateKey:
             return fast_power(abs(message), self.public_part, self.modulus)
 
 
-        def encrypt_string(self, message: str):
+        def encrypt_string_sample(self, message: str):
             '''
                 Является sample-методом. Ужасно работает
                 Для переработки надо построить хеш-функцию

@@ -1,10 +1,11 @@
-from modules.Cryptrography.Keys import ECDSAkeys
+from modules.Cryptrography import ECDSAPrivateKey
 from modules.Cryptrography.Math.EclipticCurve import Point, EllipticCurve
 
 
-curve = EllipticCurve(a=2, b=6, p=7)
-G = Point(x=2, y=5, curve=curve)
-P = Point(x=1, y=3, curve=curve)
+privatekey = ECDSAPrivateKey()
+publickey = privatekey.publickey
 
-print(G+P)
+
+a = privatekey.sing_number(10000)
+print(publickey.check_signature(a))
 
