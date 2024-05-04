@@ -38,7 +38,6 @@ class ECDSAPrivateKey:
         self.d = generate_random_number(3, self.q)
         self.public_key = self.d * self.generation_point
 
-
     
     def sing_number(self, number:int):
         assert(number < self.q)
