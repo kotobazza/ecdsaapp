@@ -3,9 +3,10 @@ from modules.utils import Cryptosystem
 from .subForm import ClientWindow
 from .tcpModel import Server, Client
 import sys
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QGroupBox
 from PyQt6.QtCore import Qt
 from bestconfig import Config
+import socket
 
 
 class MainWindow(QWidget):
@@ -41,37 +42,18 @@ class MainWindow(QWidget):
         return self.description_block
 
     def create_system_parameters_block(self):
-        self.system_parameters = QWidget()
+        self.cryptosystem_parameters = QGroupBox("Получены следующие параметры из файла конфигураций")
         vbox = QVBoxLayout()
-        text = "Получены следующие параметры из файла конфигураций:"
-        label = QLabel(text)
-        vbox.addWidget(label)
-        cryptosystem_block = self.create_system_parameters_enumeration()
-        vbox.addWidget(cryptosystem_block)
-        self.system_parameters.setLayout(vbox)
-        return self.system_parameters
-        
-
-    def create_system_parameters_enumeration(self):
-        self.cryptosystem_parameters = QWidget()
-        vbox = QVBoxLayout()
-        text = f"""Модуль эллиптической кривой: {self.cryptosystem.curve.p}\n
-                Эллиптическая кривая E: ({self.cryptosystem.curve.a}, {self.cryptosystem.curve.b})\n
-                Начальная точка генерации GP: [{self.cryptosystem.generation_point.x}, {self.cryptosystem.generation_point.y}]\n
-                Порядок циклической подгруппы точек: {self.cryptosystem.subgroup_order}
-                """
-        label = QLabel(text)
+        label = QLabel(f"""Модуль эллиптической кривой: {self.cryptosystem.curve.p}\nЭллиптическая кривая E: ({self.cryptosystem.curve.a}, {self.cryptosystem.curve.b})\nНачальная точка генерации GP: [{self.cryptosystem.generation_point.x}, {self.cryptosystem.generation_point.y}]\nПорядок циклической подгруппы точек: {self.cryptosystem.subgroup_order}""")
         vbox.addWidget(label)
         self.cryptosystem_parameters.setLayout(vbox)
         return self.cryptosystem_parameters
+    
 
     def create_check_parameters_block(self):
-        self.system_parameters_check_block = QWidget()
+        self.system_parameters_check_block = QGroupBox("Требования к параметрам")
         vbox = QVBoxLayout()
-        text = """Требования к параметрам:\n
-                    Модуль эллиптической кривой - простое число\n
-                    Порядок циклической подгруппы точек - простое число\n
-                    Произведение GP и Порядок циклической подгруппы точек - точка О"""
+        text = """Модуль эллиптической кривой - простое число\nПорядок циклической подгруппы точек - простое число\nПроизведение GP и Порядок циклической подгруппы точек - точка О"""
         label = QLabel(text)
         vbox.addWidget(label)
         
@@ -102,6 +84,7 @@ class MainWindow(QWidget):
             QMessageBox.information(self, "Тест простоты", "Двойной тест просототы Ферма-Миллер-Рабин пройден")
         else:
             QMessageBox.critical(self, "Тест простоты", "Двойной тест просототы Ферма-Миллер-Рабин не пройден")
+            self.start_button.setDisabled(True)
 
 
     def check_p_parameter(self):
@@ -112,30 +95,54 @@ class MainWindow(QWidget):
 
     def check_generation_point(self):
         if self.cryptosystem.check_generation_point():
-            QMessageBox.information(self, "Тест Начальной точки GP", "Произведение Начальной точки и Порядка циклической\nподгруппы точек дает несуществующую\nточку")
+            QMessageBox.information(self, "Тест Начальной точки GP", "Произведение Начальной точки и Порядка циклической\nподгруппы точек дает несуществующую точку")
         else:
-            QMessageBox.critical(self, "Тест Начальной точки GP", "Произведение Начальной точки и Порядка циклической\nподгруппы точек не дает несуществующую\nточку")
+            QMessageBox.critical(self, "Тест Начальной точки GP", "Произведение Начальной точки и Порядка циклической\nподгруппы точек не дает несуществующую точку")
+            self.start_button.setDisabled(True)
         
 
     def create_server_parameters_block(self):
-        self.server_parameters_block = QWidget()
+        self.server_parameters_block = QGroupBox("Технические параметры")
         vbox = QVBoxLayout()
 
-        label = QLabel("Определите порты, которые будут использоваться для P2P архитектуры. По два на каждого пользователя, итого 4")
-
+        label = QLabel("В конфигурационном файле определен системный порт, который используется для работы клиент-серверной архитектуры")
+        label2 = QLabel(f"Установлен следующий порт: {self.config.tcp_ports}")
+        button = QPushButton("Проверить доступность порта")
+        button.clicked.connect(self.check_port_and_show_message)
+        
         vbox.addWidget(label)
-
-
-        # выводить ли порты из конфига?
+        vbox.addWidget(label2)
+        vbox.addWidget(button)
 
         self.server_parameters_block.setLayout(vbox)
         return self.server_parameters_block
+    
+    def check_port_and_show_message(self):
+        if self.check_port():
+            QMessageBox.information(self, "Успех", "Установленный порт подходит для работы")
+        else:
+            QMessageBox.critical(self, "Ошибка", f"произошла ошибка при попытке захватить порт")
+            self.start_button.setDisabled(True)
+
+
+
+
+    def check_port(self):
+        port = self.config.tcp_ports
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.bind(("127.0.0.1", port)) 
+            return True
+        except socket.error as e:
+            return False
+        finally:
+            s.close()  
 
     def create_start_system_block(self):
-        button = QPushButton("Запустить одноранговое соединение")
-        button.clicked.connect(self.create_p2p_subwindows)
+        self.start_button = QPushButton("Запустить одноранговое соединение")
+        self.start_button.clicked.connect(self.create_p2p_subwindows)
 
-        return button
+        return self.start_button
 
     def create_p2p_subwindows(self):
         
@@ -146,10 +153,10 @@ class MainWindow(QWidget):
             self.subwindow2_client.close()
             self.cryptosystem.unit2 = -1
 
-        if self.cryptosystem.check_p() and self.cryptosystem.check_subgroup_order() and  self.cryptosystem.check_generation_point():
+        if self.cryptosystem.check_p() and self.cryptosystem.check_subgroup_order() and  self.cryptosystem.check_generation_point() and self.check_port():
 
-            self.tcpserver = Server(5000)
-            self.tcpclient = Client(5000)
+            self.tcpserver = Server(int(self.config.tcp_ports))
+            self.tcpclient = Client(int(self.config.tcp_ports))
             
             self.subwindow1_server = ClientWindow(
                 self.cryptosystem.get_first_unit(),
@@ -163,13 +170,25 @@ class MainWindow(QWidget):
             )
             self.subwindow1_server.show()
             self.subwindow2_client.show()
+            self.subwindow1_server.triesToClose.connect(self.tries_to_close)
+            self.subwindow2_client.triesToClose.connect(self.tries_to_close)
         else:
             QMessageBox.critical(self, "Ошибка в параметрах", "Полученные параметры криптосистемы оказались неверны.\nПроверьте каждый из параметров перед запуском соединения")
 
+    def tries_to_close(self):
+        reply = QMessageBox.question(self, "Подтверждение", "Закрытие этого окна вызовет закрытие всего приложения.\nВы уверены, что хотите продолжить?",
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            self.close()
+        
+
     def onClose(self):
         if self.subwindow1_server != -1:
+            self.subwindow1_server.network_manager.server.close()
             self.subwindow1_server.close()
         if self.subwindow2_client != -1:
+            self.subwindow2_client.network_manager.client.close()
             self.subwindow2_client.close()
         
     def closeEvent(self, event):
