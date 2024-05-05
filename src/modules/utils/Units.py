@@ -21,11 +21,16 @@ class Unit:
     def generation_curve(self):
         return self._curve
 
-    def sign_message(self, message:int):
+
+#
+        # вот здеся
+        # #
+    def sign_message(self, message):
+        message = int(message)
         assert(message < self._subgroup_order)
         return self._private_key.sing_number(message)
 
-    # нужно создать новый формат сигнатуры вовне, чтобы объект сигнатуры мог быть создан на основе строки
+    
 
     def check_signature(self, signature, public_key:ECDSAPublicKey):
         return public_key.check_signature(signature)

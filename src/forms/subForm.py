@@ -171,7 +171,7 @@ class ClientWindow(QWidget):
         self.subscription_hbox.addWidget(subwidget1)
 
     def send_subscription(self):
-        if not self.edit_r.text().strip().isdigit() and self.edit_s.text().strip().isdigit() and self.edit_message.text().strip().isdigit():
+        if not (self.edit_r.text().strip().isdecimal() and self.edit_s.text().strip().isdecimal() and self.edit_message.text().strip().isdecimal()):
             QMessageBox.critical(self, "Ошибка", "Параметры r, s и message должны быть представлены\nцифрами от 0 до 9")
             return
 
@@ -194,13 +194,13 @@ class ClientWindow(QWidget):
 
     def subscribe_text(self):
         if self.generated_signature is not None:
-            self.generated_signature = self.unit.sign_message(int(self.nosubscription_text.text()))
+            self.generated_signature = self.unit.sign_message(self.nosubscription_text.text())
             self.edit_r.setText(str(self.generated_signature.r))
             self.edit_s.setText(str(self.generated_signature.s))
             self.edit_message.setText(str(self.generated_signature.message))
             return 
         
-        self.generated_signature = self.unit.sign_message(int(self.nosubscription_text.text()))
+        self.generated_signature = self.unit.sign_message(self.nosubscription_text.text())
 
         vbox = QVBoxLayout()
         
@@ -262,6 +262,9 @@ class ClientWindow(QWidget):
             self.otherpublic_key,
             self.parent.cryptosystem.generation_point
         )):
+        #
+        # вот здеся
+        # #
             self.raw_text.setText(str(self.subscription.message))
             QMessageBox.information(self, "Успех", "Подпись верна")
         else:
