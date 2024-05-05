@@ -1,5 +1,7 @@
-from modules.CustomRandomization.PrimeTest import double_prime_test_adaptive
-from .peerForm import PeerWindow
+from modules.utils import Cryptosystem
+
+from .subForm import ClientWindow
+from .tcpModel import Server, Client
 import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
 from PyQt6.QtCore import Qt
@@ -10,12 +12,15 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.config = Config()
+        self.ports = self.config.tcp_ports
+        self.subwindow1_server = -1
+        self.subwindow2_client = -1
+        self.cryptosystem = Cryptosystem(self.config)
         self.initUI()
         
         
-
     def initUI(self):
-        self.setWindowTitle('ГОСТ 34.10-2012 (без хеша)')
+        self.setWindowTitle('ГОСТ 34.10-2012')
         self.setGeometry(100, 100, 640, 480)
         vbox = QVBoxLayout()
 
@@ -29,7 +34,7 @@ class MainWindow(QWidget):
     def create_description_block(self):
         self.description_block = QWidget()
         vbox = QVBoxLayout()
-        text = "Реализация протокола ГОСТ 34.10-2012 без использования хэш-функции в виде клиент-серверной системы"
+        text = "Реализация протокола ГОСТ 34.10-2012 виде клиент-серверной системы"
         label = QLabel(text)
         vbox.addWidget(label)
         self.description_block.setLayout(vbox)
@@ -50,10 +55,10 @@ class MainWindow(QWidget):
     def create_system_parameters_enumeration(self):
         self.cryptosystem_parameters = QWidget()
         vbox = QVBoxLayout()
-        text = f"""Модуль эллиптической кривой: {self.config.curve.p}\n
-                Эллиптическая кривая E: ({self.config.curve.a}, {self.config.curve.b})\n
-                начальная точка генерации GP: [{self.config.generation_point.x}, {self.config.generation_point.y}]\n
-                Порядок циклической подгруппы точек: {self.config.subgroup_order}
+        text = f"""Модуль эллиптической кривой: {self.cryptosystem.curve.p}\n
+                Эллиптическая кривая E: ({self.cryptosystem.curve.a}, {self.cryptosystem.curve.b})\n
+                Начальная точка генерации GP: [{self.cryptosystem.generation_point.x}, {self.cryptosystem.generation_point.y}]\n
+                Порядок циклической подгруппы точек: {self.cryptosystem.subgroup_order}
                 """
         label = QLabel(text)
         vbox.addWidget(label)
@@ -63,19 +68,25 @@ class MainWindow(QWidget):
     def create_check_parameters_block(self):
         self.system_parameters_check_block = QWidget()
         vbox = QVBoxLayout()
-        text = "Следующие параметры должны быть простыми числами: Модуль эллиптической кривой и Порядок циклической подгруппы точек"
+        text = """Требования к параметрам:\n
+                    Модуль эллиптической кривой - простое число\n
+                    Порядок циклической подгруппы точек - простое число\n
+                    Произведение GP и Порядок циклической подгруппы точек - точка О"""
         label = QLabel(text)
         vbox.addWidget(label)
         
         
         buttons_layout = QHBoxLayout()
-        self.p_primary_checker = QPushButton(text="Проверить Модуль эллиптической кривой на простоту")
-        self.q_primary_checker = QPushButton(text="Проверить Порядок циклической подгруппы точек на простоту")
+        self.p_primary_checker = QPushButton(text="Проверить Модуль эллиптической\nкривой на простоту")
+        self.q_primary_checker = QPushButton(text="Проверить Порядок циклической\nподгруппы точек на простоту")
+        self.gp_checker = QPushButton(text="Проверить Произведение GP и Порядок\nциклической подгруппы точек - точка О")
         buttons_layout.addWidget(self.p_primary_checker)
         buttons_layout.addWidget(self.q_primary_checker)
+        buttons_layout.addWidget(self.gp_checker)
 
         self.p_primary_checker.clicked.connect(self.check_p_parameter)
         self.q_primary_checker.clicked.connect(self.check_q_parameter)
+        self.gp_checker.clicked.connect(self.check_generation_point)
         
         t = QWidget()
         t.setLayout(buttons_layout)
@@ -86,20 +97,25 @@ class MainWindow(QWidget):
 
         return self.system_parameters_check_block
 
-    def check_parameter(self, num):
-        if double_prime_test_adaptive(num):
+    def create_message_box_for_primary_checked_parameter(self, isValid):
+        if isValid:
             QMessageBox.information(self, "Тест простоты", "Двойной тест просототы Ферма-Миллер-Рабин пройден")
         else:
             QMessageBox.critical(self, "Тест простоты", "Двойной тест просототы Ферма-Миллер-Рабин не пройден")
 
 
     def check_p_parameter(self):
-        p = int(self.config.curve.p)
-        self.check_parameter(p)
-        
+        self.create_message_box_for_primary_checked_parameter(self.cryptosystem.check_p())
+    
     def check_q_parameter(self):
-        q = int(self.config.subgroup_order)
-        self.check_parameter(q)
+        self.create_message_box_for_primary_checked_parameter(self.cryptosystem.check_subgroup_order())
+
+    def check_generation_point(self):
+        if self.cryptosystem.check_generation_point():
+            QMessageBox.information(self, "Тест Начальной точки GP", "Произведение Начальной точки и Порядка циклической\nподгруппы точек дает несуществующую\nточку")
+        else:
+            QMessageBox.critical(self, "Тест Начальной точки GP", "Произведение Начальной точки и Порядка циклической\nподгруппы точек не дает несуществующую\nточку")
+        
 
     def create_server_parameters_block(self):
         self.server_parameters_block = QWidget()
@@ -122,64 +138,41 @@ class MainWindow(QWidget):
         return button
 
     def create_p2p_subwindows(self):
-        self.subwindow1 = PeerWindow(1, self)
-        self.subwindow2 = PeerWindow(2, self)
-        self.subwindow1.show()
-        self.subwindow2.show()
-
-
-
-
-
-
-
-
-class PrimeCheckForm(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    def initUI(self):
         
-        self.setGeometry(100, 100, 400, 200)
+        if self.subwindow1_server != -1:
+            self.subwindow1_server.close()
+            self.cryptosystem.unit1 = -1
+        if self.subwindow2_client != -1:
+            self.subwindow2_client.close()
+            self.cryptosystem.unit2 = -1
 
-        vbox = QVBoxLayout()
+        if self.cryptosystem.check_p() and self.cryptosystem.check_subgroup_order() and  self.cryptosystem.check_generation_point():
 
-        # Поле ввода очень длинных чисел
-        self.number_input = QLineEdit(self)
-        self.number_input.setPlaceholderText('Введите число')
-        vbox.addWidget(self.number_input)
-
-        # Кнопка "Проверить на простоту"
-        self.check_button = QPushButton('Проверить на простоту', self)
-        self.check_button.clicked.connect(self.check_primality)
-        vbox.addWidget(self.check_button)
-
-        # Поле ввода порта для сервера
-        hbox_port = QHBoxLayout()
-        self.port_label = QLabel('Порт для сервера:', self)
-        hbox_port.addWidget(self.port_label)
-        self.port_input = QLineEdit(self)
-        hbox_port.addWidget(self.port_input)
-        vbox.addLayout(hbox_port)
-
-        # Кнопка "Открыть сервер"
-        self.server_button = QPushButton('Открыть сервер', self)
-        self.server_button.clicked.connect(self.open_server)
-        vbox.addWidget(self.server_button)
-
-        self.setLayout(vbox)
-
-    def check_primality(self):
-        number = int(self.number_input.text())
-        if double_prime_test_adaptive(number):
-            self.show_message_box('Простое число')
+            self.tcpserver = Server(5000)
+            self.tcpclient = Client(5000)
+            
+            self.subwindow1_server = ClientWindow(
+                self.cryptosystem.get_first_unit(),
+                self.tcpserver,
+                self
+            )
+            self.subwindow2_client = ClientWindow(
+                self.cryptosystem.get_second_unit(),
+                self.tcpclient,
+                self
+            )
+            self.subwindow1_server.show()
+            self.subwindow2_client.show()
         else:
-            self.show_message_box('Составное число')
+            QMessageBox.critical(self, "Ошибка в параметрах", "Полученные параметры криптосистемы оказались неверны.\nПроверьте каждый из параметров перед запуском соединения")
 
-    def open_server(self):
-        port = int(self.port_input.text())
-        # Код для открытия сервера по указанному порту
+    def onClose(self):
+        if self.subwindow1_server != -1:
+            self.subwindow1_server.close()
+        if self.subwindow2_client != -1:
+            self.subwindow2_client.close()
+        
+    def closeEvent(self, event):
+        self.onClose()
+        event.accept()
 
-    def show_message_box(self, message):
-        QMessageBox.information(self, "Сообщение", message)

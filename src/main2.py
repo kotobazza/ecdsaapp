@@ -1,13 +1,23 @@
+from forms.tcpModel import Server, Client
+from PyQt6.QtWidgets import QApplication
 import sys
+import time
 
-from PyQt6.QtGui import QGuiApplication
-from PyQt6.QtQml import QQmlApplicationEngine
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    server = Server(5000)
+    client = Client(5000)
+
+    client.messageReceived.connect(lambda msg: print("Client received: ", msg))
+    #server.messageReceived.connect(lambda msg: print(f"Server received: {msg}"))
+
+    client.connect_to_server()
+    client.send_message("start_message")
 
 
-app = QGuiApplication(sys.argv)
+    time.sleep(2)
 
-engine = QQmlApplicationEngine()
-engine.quit.connect(app.quit)
-engine.load('ecdsa/src/forms/application.qml')
+    server.send_message("Hello")
 
-sys.exit(app.exec())
+
+    sys.exit(app.exec())
