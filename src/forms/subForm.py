@@ -6,6 +6,7 @@ import json
 from modules.Cryptrography.Math import Point
 from modules.Cryptrography.Keys.ECDSAkeys import Signature, ECDSAPublicKey
 from modules.TextWorks import wrapText
+import hashlib
 
 
 class ClientWindow(QWidget):
@@ -37,6 +38,7 @@ class ClientWindow(QWidget):
         self.initUI()
         self.otherpublic_key = None
         self.generated_signature = None
+        self.decoded_message = None
 
         
 
@@ -61,7 +63,9 @@ class ClientWindow(QWidget):
                     f"""r: {self.subscription.r}\ns: {self.subscription.s}\nmessage: {self.subscription.message}""",
                     self.wrapSize)
             )
+            self.decoded_message = data['body']['subscription']['decoded_message']
             self.check_subscription_button.setDisabled(False)
+            self.check_hashing.setDisabled(False)
 
 
 
@@ -182,7 +186,8 @@ class ClientWindow(QWidget):
                 "subscription": {
                     "r": self.edit_r.text().strip(),
                     "s": self.edit_s.text().strip(),
-                    "message": self.edit_message.text().strip()
+                    "message": self.edit_message.text().strip(),
+                    "decoded_message": self.nosubscription_text.text().strip()
                 }
             }
         }
@@ -241,21 +246,36 @@ class ClientWindow(QWidget):
         subwidget1 = QGroupBox("Проверка подписи сообщения")
         textlabel = QLabel("Здесь будет попись, полученная от другого пользователя")
         self.subscripted_text = QLabel("Параметры подписи")
+        self.check_hashing = QPushButton("Проверить хэш сообщения")
+        self.check_hashing.clicked.connect(self.check_hash)
         self.check_subscription_button = QPushButton("Проверить подпись")
         self.check_subscription_button.clicked.connect(self.check_subscription)
         self.raw_text = QLabel("Здесь будет готовое сообщение")
         self.check_subscription_button.setDisabled(True)
+        self.check_hashing.setDisabled(True)
         
-
         vbox1 = QVBoxLayout()
         vbox1.addWidget(textlabel)
         vbox1.addWidget(self.subscripted_text)
+        vbox1.addWidget(self.check_hashing)
         vbox1.addWidget(self.check_subscription_button)
         vbox1.addWidget(self.raw_text)
         subwidget1.setLayout(vbox1)
         self.subscription_hbox.addWidget(subwidget1)
+    
+    def check_hash(self):
+        m = hashlib.sha224()
+        m.update(self.decoded_message.encode())
+        if int(m.hexdigest(), 16) == self.subscription.message:
+            QMessageBox.information(self, "Успех", "Хэш сообщения и данные из подписи совпадают")
+        else:
+            QMessageBox.critical(self, "Ошибка", "Хэш сообщения и данные из подписи не совпадают")
+            print(int(m.hexdigest(), 16), self.subscription.message, sep="\n")
+            self.check_subscription_button.setDisabled(True)
+            self.raw_text.setText("Здесь будет готовое сообщение")
 
     def check_subscription(self):
+        self.check_hash()
         
         if self.unit.check_signature(self.subscription, ECDSAPublicKey(
             self.parent.cryptosystem.subgroup_order, 
@@ -265,7 +285,7 @@ class ClientWindow(QWidget):
         #
         # вот здеся
         # #
-            self.raw_text.setText(str(self.subscription.message))
+            self.raw_text.setText(self.decoded_message)
             QMessageBox.information(self, "Успех", "Подпись верна")
         else:
             QMessageBox.critical(self, "Ошибка", "Подпись не подтвердилась")

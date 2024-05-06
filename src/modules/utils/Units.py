@@ -1,4 +1,6 @@
 from modules.Cryptrography.Keys.ECDSAkeys import ECDSAPublicKey
+import hashlib
+
 class Unit:
     def __init__(self, number):
         self.number = number
@@ -26,9 +28,11 @@ class Unit:
         # вот здеся
         # #
     def sign_message(self, message):
-        message = int(message)
-        assert(message < self._subgroup_order)
-        return self._private_key.sing_number(message)
+        m = hashlib.sha224()
+        m.update(message.encode())
+        t = int(m.hexdigest(), 16)
+        assert(t < self._subgroup_order)
+        return self._private_key.sing_number(t)
 
     
 
