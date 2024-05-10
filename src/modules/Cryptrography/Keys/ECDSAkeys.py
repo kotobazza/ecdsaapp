@@ -2,15 +2,18 @@ from ...CustomRandomization import generate_random_number, generate_random_prime
 from ..Math import extended_euclidean_algorithm
 from ...FastPower import fast_power
 from ..Math import EclipticCurve
+import hashlib
 
-class Signature:
-    def __init__(self, r, s, message):
+class ECDSASignature:
+    def __init__(self, type, r, s, message_hash, message):
         self.r = r
         self.s = s
+        self.message_hash = message_hash
         self.message = message
+        self.type = type
     
     def __repr__(self):
-        return f"EllipticCurve(a={self.a}, b={self.b}, p={self.p})"
+        return f"ECDSASignature: {self.r}, {self.s}, {self.message_hash}, {self.message}"
 
 class ECDSAPublicKey:
     def __init__(self, q, public_key_point, generation_point):
@@ -45,6 +48,13 @@ class ECDSAPrivateKey:
         self.private_key = generate_random_number(3, self.q)
         self.public_key = self.private_key * self.generation_point
 
+    def sing_string(self, string:str):
+        m = hashlib.sha224()
+        m.update(string.encode())
+        t = int(m.hexdigest(), 16)
+        assert(t < self.q)
+        assert(0==1) # метод нерабочий
+        
     
     def sing_number(self, number:int):
         assert(number < self.q)
@@ -58,7 +68,7 @@ class ECDSAPrivateKey:
             r = C.x % self.q
             s = (r*self.private_key + k*e) % self.q
 
-        return Signature(r, s, number)
+        return ECDSASignature(r, s, number, number)
 
     @property
     def publickey(self):
