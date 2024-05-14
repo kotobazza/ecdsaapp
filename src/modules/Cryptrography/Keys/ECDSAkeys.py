@@ -4,13 +4,12 @@ from ...FastPower import fast_power
 from ..Math import EclipticCurve
 import hashlib
 
-class ECDSASignature:
-    def __init__(self, type, r, s, message_hash, message):
+class Signature:
+    def __init__(self, r, s, message):
         self.r = r
         self.s = s
-        self.message_hash = message_hash
+        #self.message_hash = message_hash
         self.message = message
-        self.type = type
     
     def __repr__(self):
         return f"ECDSASignature: {self.r}, {self.s}, {self.message_hash}, {self.message}"
@@ -68,7 +67,7 @@ class ECDSAPrivateKey:
             r = C.x % self.q
             s = (r*self.private_key + k*e) % self.q
 
-        return ECDSASignature(r, s, number, number)
+        return Signature(r, s, number)
 
     @property
     def publickey(self):
