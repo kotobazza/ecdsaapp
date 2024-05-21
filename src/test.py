@@ -22,6 +22,15 @@ public_key = private_key.public_key
 
 sign = private_key.sign("Hello World")
 
+print()
+print("signed_message:", sign.json())
+print()
+print()
+print("public_key:", public_key.json())
+print()
+print()
+print("generation_point:", gp.json())
+
 
 
 

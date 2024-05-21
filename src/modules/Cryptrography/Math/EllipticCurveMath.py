@@ -14,7 +14,7 @@ class EllipticCurve:
         return f"EllipticCurve(a={self.a}, b={self.b}, p={self.p})"
 
     def json(self):
-        return "{" + f"curve.a: {self.a}, curve.b: {self.b}, curve.p: {self.c}" +"}"
+        return "{" + f"curve.a: {self.a}, curve.b: {self.b}, curve.p: {self.p}" +"}"
 
     @staticmethod
     def load_from_json(string):

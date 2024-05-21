@@ -16,7 +16,7 @@ class Signature:
         return f"ECDSA_Signature: {self.r}, {self.s}, {self.hash}"
 
     def json(self):
-        return "{"+ f"message_hash: {self.hash}," + f"signature_r: {self.r}" + f"signature_s: {self.s}" + "}"
+        return "{"+ f"message_hash: {self.hash}, " + f"signature_r: {self.r}, " + f"signature_s: {self.s}" + "}"
 
     @staticmethod
     def load_from_json(string):
@@ -36,7 +36,7 @@ class SignedMessage:
         return f"ECDSA_SignedMessage: {self.message}, {self.signature.__repr__()}"
     
     def json(self):
-        return "{" + f"message: {self.message}," + f"signature: {self.signature.json}"+ "}"
+        return "{" + f'message: "{self.message}", ' + f"signature: {self.signature.json()}"+ "}"
 
     @staticmethod
     def load_from_json(string):
@@ -102,12 +102,12 @@ class ECDSAPrivateKey:
 
     def sign(self, signable:str):
         m = hashlib.sha224()
-        m.update(string.encode("utf-8"))
+        m.update(signable.encode("utf-8"))
         hashed = int(m.hexdigest(), 16)
 
         signature = self.__sing_sha224hash(hashed)
 
-        return SignedMessage(signable, signautre)
+        return SignedMessage(signable, signature)
 
         
     

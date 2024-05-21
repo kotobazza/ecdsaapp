@@ -1,0 +1,2 @@
++ bestconfig
++ pyqt6
