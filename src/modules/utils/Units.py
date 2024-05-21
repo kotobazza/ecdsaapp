@@ -24,17 +24,10 @@ class Unit:
         return self._curve
 
 
-#
-        # вот здеся
-        # #
     def sign_message(self, message):
-        m = hashlib.sha224()
-        m.update(message.encode())
-        t = int(m.hexdigest(), 16)
-        assert(t < self._subgroup_order)
-        return self._private_key.sing_number(t)
+        message = str(message)
+        return self._private_key.sign(t)
 
     
-
-    def check_signature(self, signature, public_key:ECDSAPublicKey):
-        return public_key.check_signature(signature)
+    def check_signature(self, signed_message, public_key:ECDSAPublicKey):
+        return public_key.check_signature(signed_message)

@@ -1,6 +1,33 @@
+import json
+
+class EllipticCurve:
+    """ Класс для элиптической кривой в форме y^2 = x^3 + ax + b над полем F_p. """
+    def __init__(self, a, b, p):
+        self.a = a
+        self.b = b
+        self.p = p
+
+    def __eq__(self, other):
+        return (self.a, self.b, self.p) == (other.a, other.b, other.p)
+
+    def __repr__(self):
+        return f"EllipticCurve(a={self.a}, b={self.b}, p={self.p})"
+
+    def json(self):
+        return "{" + f"curve.a: {self.a}, curve.b: {self.b}, curve.p: {self.c}" +"}"
+
+    @staticmethod
+    def load_from_json(string):
+        data = json.loads(string)
+        a = int(data['curve.a'])
+        b = int(data['curve.b'])
+        p = int(data['curve.p'])
+        return EllipticCurve(a, b, p)
+
+
 class Point:
     """ Класс для представления точек на элиптической кривой. """
-    def __init__(self, x, y, curve):
+    def __init__(self, x, y, curve:EllipticCurve):
         self.x = x
         self.y = y
         self.curve = curve
@@ -52,16 +79,16 @@ class Point:
     def __repr__(self):
         return f"Point({self.x}, {self.y})"
 
-class EllipticCurve:
-    """ Класс для элиптической кривой в форме y^2 = x^3 + ax + b над полем F_p. """
-    def __init__(self, a, b, p):
-        self.a = a
-        self.b = b
-        self.p = p
 
-    def __eq__(self, other):
-        return (self.a, self.b, self.p) == (other.a, other.b, other.p)
+    def json(self):
+        return "{"+ f"x: {self.x}, y: {self.y}, curve: {self.curve.json()}" +"}"
 
-    def __repr__(self):
-        return f"EllipticCurve(a={self.a}, b={self.b}, p={self.p})"
+    @staticmethod
+    def load_from_json(string):
+        data = json.loads(string)
+        x = int(data['x'])
+        y = int(data['y'])
+        curve = EllipticCurve.load_from_json(data['curve'])
+        return Point(x, y, curve)
+
 

@@ -1,2 +1,2 @@
 from .ExtendedEuclidean import extended_euclidean_algorithm
-from .EclipticCurve import EllipticCurve, Point
+from .EllipticCurveMath import EllipticCurve, Point
